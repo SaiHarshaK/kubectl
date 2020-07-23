@@ -174,6 +174,30 @@ func ParseProtocols(protocols interface{}) (map[string]string, error) {
 	return portProtocolMap, nil
 }
 
+// ParseAnnotations turns a string representation of a annotation set into a map[string]string
+func ParseAnnotations(annotateSpec interface{}) (map[string]string, error) {
+	annotationString, isString := annotateSpec.(string)
+	if !isString {
+		return nil, fmt.Errorf("expected string, found %v", annotateSpec)
+	}
+	if len(annotationString) == 0 {
+		return nil, fmt.Errorf("no annotate spec passed")
+	}
+	annotations := map[string]string{}
+	annotateSpecs := strings.Split(annotationString, ",")
+	for ix := range annotateSpecs {
+		annotateSpec := strings.Split(annotateSpecs[ix], "=")
+		if len(annotateSpec) != 2 {
+			return nil, fmt.Errorf("unexpected annotate spec: %s", annotateSpecs[ix])
+		}
+		if len(annotateSpec[0]) == 0 {
+			return nil, fmt.Errorf("unexpected empty annotate key")
+		}
+		annotations[annotateSpec[0]] = annotateSpec[1]
+	}
+	return annotations, nil
+}
+
 // ParseLabels turns a string representation of a label set into a map[string]string
 func ParseLabels(labelSpec interface{}) (map[string]string, error) {
 	labelString, isString := labelSpec.(string)

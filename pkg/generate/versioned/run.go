@@ -21,13 +21,27 @@ import (
 	"strconv"
 	"strings"
 
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/kubectl/pkg/generate"
 )
+
+// getAnnotations returns map of annotations.
+func getAnnotations(params map[string]string, name string) (map[string]string, error) {
+	annotationString, found := params["annotation"]
+	var annotations map[string]string
+	var err error
+	if found && len(annotationString) > 0 {
+		annotations, err = generate.ParseAnnotations(annotationString)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return annotations, nil
+}
 
 // getLabels returns map of labels.
 func getLabels(params map[string]string, name string) (map[string]string, error) {
@@ -213,6 +227,7 @@ type BasicPod struct{}
 func (BasicPod) ParamNames() []generate.GeneratorParam {
 	return []generate.GeneratorParam{
 		{Name: "labels", Required: false},
+		{Name: "annotation", Required: false},
 		{Name: "default-name", Required: false},
 		{Name: "name", Required: true},
 		{Name: "image", Required: true},
@@ -250,6 +265,11 @@ func (BasicPod) Generate(genericParams map[string]interface{}) (runtime.Object, 
 	}
 
 	name, err := getName(params)
+	if err != nil {
+		return nil, err
+	}
+
+	annotations, err := getAnnotations(params, name)
 	if err != nil {
 		return nil, err
 	}
@@ -296,8 +316,9 @@ func (BasicPod) Generate(genericParams map[string]interface{}) (runtime.Object, 
 
 	pod := v1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:   name,
-			Labels: labels,
+			Name:        name,
+			Labels:      labels,
+			Annotations: annotations,
 		},
 		Spec: v1.PodSpec{
 			ServiceAccountName: params["serviceaccount"],
